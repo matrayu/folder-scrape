@@ -6,6 +6,7 @@ Folder Scanner - A tool to traverse directories and output detailed file informa
 import os
 import sys
 import argparse
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -42,6 +43,8 @@ def get_file_type(file_path):
         '.xml': 'XML File',
         '.csv': 'CSV File',
         '.md': 'Markdown File',
+        '.psd': 'PSD Image',
+        '.psb': 'PSB Image',
     }
     
     return file_types.get(extension, f'{extension[1:].upper()} File')
@@ -56,6 +59,17 @@ def format_size(size_bytes):
     return f"{size_bytes:.2f} PB"
 
 
+def count_total_items(directory_path):
+    """Count total directories and files for progress tracking."""
+    total = 0
+    try:
+        for root, dirs, files in os.walk(directory_path):
+            total += len(dirs) + len(files)
+    except (OSError, IOError):
+        pass
+    return total
+
+
 def scan_directory(directory_path):
     """
     Traverse directory and collect file information.
@@ -67,6 +81,12 @@ def scan_directory(directory_path):
         List of dictionaries containing file information
     """
     results = []
+    processed = 0
+    
+    # Skip counting for faster startup, just show progress as we go
+    print("Starting scan... (progress updates every 2 seconds)\n")
+    
+    last_update = time.time()
     
     for root, dirs, files in os.walk(directory_path):
         # Process directories
@@ -91,6 +111,14 @@ def scan_directory(directory_path):
                     'size': 'Error',
                     'created': 'Error: ' + str(e)
                 })
+            
+            processed += 1
+            
+            # Update progress every 2 seconds
+            current_time = time.time()
+            if current_time - last_update >= 2.0:
+                print(f"Progress: {processed} items processed - Currently in: {root}")
+                last_update = current_time
         
         # Process files
         for file_name in files:
@@ -116,6 +144,17 @@ def scan_directory(directory_path):
                     'size': 'Error',
                     'created': 'Error: ' + str(e)
                 })
+            
+            processed += 1
+            
+            # Update progress every 2 seconds
+            current_time = time.time()
+            if current_time - last_update >= 2.0:
+                print(f"Progress: {processed} items processed - Currently in: {root}")
+                last_update = current_time
+    
+    # Final progress update
+    print(f"Completed: {processed} items processed")
     
     return results
 
